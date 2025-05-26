@@ -9,6 +9,9 @@ license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "user-agents (>=2.2.0,<3.0.0)",
+    "logging (>=0.4.9.6,<0.5.0.0)",
+    "dotenv (>=0.9.9,<0.10.0)"
 ]
 
 
