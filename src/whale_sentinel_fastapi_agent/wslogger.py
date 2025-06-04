@@ -29,14 +29,14 @@ def create_log_directory():
         os.chmod(log_dir, 0o755)
 
 def setup_logging():
-    logger = logging.getLogger('wslogger')
-    logger.setLevel(logging.INFO)
+    wslogger = logging.getLogger('wslogger')
+    wslogger.setLevel(logging.INFO)
     formatter = CustomFormatter(json.dumps({'level': '%(levelname)s', 'msg': '%(message)s', 'time': '%(asctime)s'}))
     handler = RotatingFileHandler(f'/var/log/whale-sentinel/ws-agent/{AGENT_ID}.log', maxBytes=int(LOG_MAX_SIZE), backupCount=int(LOG_MAX_BACKUPS))
     handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    wslogger.addHandler(handler)
 
 # setup logging for script
 create_log_directory()
 setup_logging()
-logger = logging.getLogger('wslogger')
+wslogger = logging.getLogger('wslogger')

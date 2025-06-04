@@ -4,7 +4,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from functools import wraps
 from typing import Callable
-from .wslogger import logger
+from .wslogger import wslogger
 from .wsprotection import Protection
 from .wsagent import Agent
 import asyncio
@@ -36,7 +36,7 @@ class WhaleSentinelFastApiAgent(object):
             self.agent_id = WS_AGENT_ID
             self._initialize()
         except Exception as e:
-            logger.error(f"Error initializing Whale Sentinel FastAPI Agent: {e}")
+            wslogger.error(f"Error initializing Whale Sentinel FastAPI Agent: {e}")
             raise
 
     def _initialize(self):
@@ -52,7 +52,7 @@ class WhaleSentinelFastApiAgent(object):
                 raise ValueError("WS_AGENT_ID must be set")
             Agent.__init__(self)
         except Exception as e:
-            logger.error(f"Error in Whale Sentinel FastAPI Agent initialization: {e}")
+            wslogger.error(f"Error in Whale Sentinel FastAPI Agent initialization: {e}")
 
     def whale_sentinel_agent_protection(self):
         def _whale_sentinel_agent_protection(func: Callable):
@@ -63,7 +63,9 @@ class WhaleSentinelFastApiAgent(object):
             async def wrapper(request: Request, *args, **kwargs):
                 profile = Agent._profile(self)
                 if profile is None:
-                    logger.info("Whale Sentinel FastAPI Agent Protection: No profile found, skipping protection")
+                    wslogger.info("Whale Sentinel FastAPI Agent Protection: No profile found, skipping protection")
+                    request_meta_data = await Protection.do(self, request)
+                    asyncio.create_task(Agent._write_to_storage(self, request_meta_data))
                     return await func(request, *args, **kwargs)
 
                 running_mode = profile.get("running_mode", "lite")
@@ -73,7 +75,10 @@ class WhaleSentinelFastApiAgent(object):
                 secure_response_enabled = profile.get("secure_response_headers", {}).get("enable", False)
                 
                 result = await func(request, *args, **kwargs)
-                                    
+
+                if running_mode == "off":
+                    return result
+                           
                 if running_mode  == "lite":
                     request_meta_data = await Protection.do(self, request)
                     asyncio.create_task(Protection._mode_lite(self, request_meta_data))
@@ -89,7 +94,7 @@ class WhaleSentinelFastApiAgent(object):
                     request_meta_data = await Protection.do(self, request)
                     blocked = await Protection._mode_protection(self, profile, request_meta_data)
                     if blocked:
-                        logger.info("Whale Sentinel FastAPI Agent Protection: Request blocked by Whale Sentinel Protection")
+                        wslogger.info("Whale Sentinel FastAPI Agent Protection: Request blocked by Whale Sentinel Protection")
                         return JSONResponse(
                             status_code=403,
                             content={

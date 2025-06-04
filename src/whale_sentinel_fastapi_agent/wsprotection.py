@@ -1,7 +1,6 @@
 from user_agents import parse
-from FastAPI import request
 from datetime import datetime
-from .wslogger import logger
+from .wslogger import wslogger
 from .wsagent import Agent
 
 class Protection(object):
@@ -18,18 +17,20 @@ class Protection(object):
         Perform the Whale Sentinel FastAPI Agent Protection in lite mode
         """
         try:
-            Agent._write_to_storage(self, request_meta_data)
+            await Agent._write_to_storage(self, request_meta_data)
         except Exception as e:
-            logger.error(f"Something went wrong at Protection.__init__.\n Error message - {e}")
+            wslogger.error(f"Something went wrong at Protection.__init__.\n Error message - {e}")
     
     async def _mode_monitor(self, request_meta_data) -> None:
         """
         Perform the Whale Sentinel FastAPI Agent Protection in monitor mode
         """
         try:
-            Agent._detection(self, request_meta_data)
+            detection = Agent._detection(self, request_meta_data)
+            if detection is None:
+                Agent._write_to_storage(self, request_meta_data)
         except Exception as e:
-            logger.error(f"Something went wrong at Protection._mode_monitor.\n Error message - {e}")
+            wslogger.error(f"Something went wrong at Protection._mode_monitor.\n Error message - {e}")
 
     async def _mode_protection(self, profile, request_meta_data) -> None:
         """
@@ -39,20 +40,21 @@ class Protection(object):
             wad_threshold = profile.get("ws_module_web_attack_detection", {}).get("threshold", {})
             dgad_threshold = profile.get("ws_module_dga_detection", {}).get("threshold", {})
             detection = Agent._detection(self, request_meta_data)
-            if detection is not None:
-                wad = detection.get("ws_module_web_attack_detection_score", 0)
-                dgad = detection.get("ws_module_dga_detection_score", 0)
-                cad = detection.get("ws_module_common_attack_detection", {})
-                agent_action = detection.get("agent_action", "ALLOW")
-                agent_self_action = "ALLOW"
-                if wad >= wad_threshold or dgad >= dgad_threshold or any(cad.values()):
-                    agent_self_action = "BLOCK"
-                if (agent_action == agent_self_action) and agent_self_action == "BLOCK":
-                    return True
+            if detection is None:
+                Agent._write_to_storage(self, request_meta_data)
                 return False
+            wad = detection.get("ws_module_web_attack_detection_score", 0)
+            dgad = detection.get("ws_module_dga_detection_score", 0)
+            cad = detection.get("ws_module_common_attack_detection", {})
+            agent_action = detection.get("agent_action", "ALLOW")
+            agent_self_action = "ALLOW" #Default agent action is allow
+            if wad >= wad_threshold or dgad >= dgad_threshold or any(cad.values()):
+                agent_self_action = "BLOCK"
+            if (agent_action == agent_self_action) and agent_self_action == "BLOCK":
+                return True
             return False
         except Exception as e:
-            logger.error(f"Something went wrong at Protection._mode_protection.\n Error message - {e}")
+            wslogger.error(f"Something went wrong at Protection._mode_protection.\n Error message - {e}")
 
     async def _secure_response(self, profile, response):
         """
@@ -64,7 +66,7 @@ class Protection(object):
                 response.headers[key] = value
             return response
         except Exception as e:
-            logger.error(f"Something went wrong at Protection._secure_response.\n Error message - {e}")
+            wslogger.error(f"Something went wrong at Protection._secure_response.\n Error message - {e}")
                
     async def do(self, request) -> None:
         """
@@ -121,4 +123,4 @@ class Protection(object):
             }
             return meta_data
         except Exception as e:
-            logger.error(f"Something went wrong at Protection.do.\n Error message - {e}")
+            wslogger.error(f"Something went wrong at Protection.do.\n Error message - {e}")

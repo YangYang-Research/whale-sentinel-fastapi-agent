@@ -1,0 +1,1 @@
+poetry build && pip install dist/*.whl --force
