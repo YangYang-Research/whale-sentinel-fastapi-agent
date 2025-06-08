@@ -46,11 +46,11 @@ class Protection(object):
             wad = detection.get("ws_module_web_attack_detection_score", 0)
             dgad = detection.get("ws_module_dga_detection_score", 0)
             cad = detection.get("ws_module_common_attack_detection", {})
-            agent_action = detection.get("agent_action", "ALLOW")
+            agent_action = detection.get("analysis_result", "NORNAL_CLIENT_REQUEST")
             agent_self_action = "ALLOW" #Default agent action is allow
             if wad >= wad_threshold or dgad >= dgad_threshold or any(cad.values()):
                 agent_self_action = "BLOCK"
-            if (agent_action == agent_self_action) and agent_self_action == "BLOCK":
+            if (agent_action == "ABNORMAL_CLIENT_REQUEST") and agent_self_action == "BLOCK":
                 return True
             return False
         except Exception as e:
