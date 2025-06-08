@@ -94,6 +94,7 @@ class Protection(object):
 
             meta_data = {
                 "agent_id": self.agent_id,
+                "agent_name": self.agent_name,
                 "payload": {
                     "data": {
                         "client_information": {

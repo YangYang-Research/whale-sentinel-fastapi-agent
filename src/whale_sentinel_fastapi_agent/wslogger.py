@@ -9,7 +9,7 @@ load_dotenv()
 
 LOG_MAX_SIZE = os.getenv("LOG_MAX_SIZE", 10000000)  # in bytes
 LOG_MAX_BACKUPS = os.getenv("LOG_MAX_BACKUPS", 3)  # number of backup files
-AGENT_ID = os.getenv("WS_AGENT_ID")
+AGENT_NAME = os.getenv("WS_AGENT_NAME")
 
 class CustomFormatter(logging.Formatter):
     def formatLevel(self, record):
@@ -32,7 +32,7 @@ def setup_logging():
     wslogger = logging.getLogger('wslogger')
     wslogger.setLevel(logging.INFO)
     formatter = CustomFormatter(json.dumps({'level': '%(levelname)s', 'msg': '%(message)s', 'time': '%(asctime)s'}))
-    handler = RotatingFileHandler(f'/var/log/whale-sentinel/ws-agent/{AGENT_ID}.log', maxBytes=int(LOG_MAX_SIZE), backupCount=int(LOG_MAX_BACKUPS))
+    handler = RotatingFileHandler(f'/var/log/whale-sentinel/ws-agent/{AGENT_NAME}.log', maxBytes=int(LOG_MAX_SIZE), backupCount=int(LOG_MAX_BACKUPS))
     handler.setFormatter(formatter)
     wslogger.addHandler(handler)
 
