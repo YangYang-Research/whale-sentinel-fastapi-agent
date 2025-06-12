@@ -240,7 +240,8 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                     "Authorization": f"Basic {self.ws_authentication}",
                     "Content-Type": "application/json"
                 },
-                json=data
+                json=data,
+                verify=self.ws_verity_tls 
             )
             if gateway_response.status_code != 200:
                 return None

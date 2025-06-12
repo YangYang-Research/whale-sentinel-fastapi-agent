@@ -30,12 +30,14 @@ class WhaleSentinelFastApiAgent(object):
             WS_AGENT_AUTH_TOKEN = os.getenv('WS_AGENT_AUTH_TOKEN')
             WS_AGENT_ID = os.getenv("WS_AGENT_ID")
             WS_AGENT_NAME = os.getenv("WS_AGENT_NAME")
+            WS_VERIFY_TLS = os.getenv("WS_VERIFY_TLS", "true")
             self.log_max_size = int(LOG_MAX_SIZE)
             self.log_max_backups = int(LOG_MAX_BACKUPS)
             self.ws_gateway_api = WS_GATEWAY_API
             self.ws_agent_auth_token = WS_AGENT_AUTH_TOKEN
             self.agent_id = WS_AGENT_ID
             self.agent_name = WS_AGENT_NAME
+            self.ws_verity_tls = WS_VERIFY_TLS
             self._initialize()
         except Exception as e:
             wslogger.error(f"Error initializing Whale Sentinel FastAPI Agent: {e}")
