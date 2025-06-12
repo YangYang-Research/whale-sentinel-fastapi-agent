@@ -23,7 +23,7 @@ class CustomFormatter(logging.Formatter):
     
 def create_log_directory():
     import os
-    log_dir = '/var/log/whale-sentinel/ws-agent'
+    log_dir = '/var/log/whale-sentinel/ws-agents'
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
         os.chmod(log_dir, 0o755)
