@@ -6,6 +6,7 @@ from .wslogger import wslogger
 import requests
 import time
 import json
+import socket
 
 class Agent(object):
     def __init__(self):
@@ -16,6 +17,7 @@ class Agent(object):
             ws_auth_string = f"ws-agent:{self.ws_agent_auth_token}"
             ws_base64_auth_string = base64.b64encode(ws_auth_string.encode()).decode()
             self.ws_authentication = ws_base64_auth_string
+            self.ip_address = Agent._get_internal_ip()  
             Agent._banner()
             Agent._communication(self)
             Agent._init_storage(self)
@@ -120,24 +122,43 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
         Communicate with the Whale Sentinel Gateway Service
         """
         try:
-            endpoint = self.ws_gateway_api + "/agent/profile"
-            data = {
+            endpoint_1 = self.ws_gateway_api + "/agent/profile"
+            endpoint_2 = self.ws_gateway_api + "/agent/synchronize"
+            
+            data_1 = {
                 "agent_id": self.agent_id,
                 "agent_name": self.agent_name,
-                "request_created_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                "request_created_at": datetime.now().astimezone().isoformat()
             }
 
-            gateway_response = Agent._make_call(self, endpoint, data)
+            data_2 = {
+                "agent_id": self.agent_id,
+                "agent_name": self.agent_name,
+                "payload" : {},
+                "ip_address": self.ip_address,
+                "request_created_at": datetime.now().astimezone().isoformat()
+            }
+
+            gateway_response = Agent._make_call(self, endpoint_1, data_1)
             if gateway_response is None:
                 wslogger.info("Whale Sentinel FastAPI Agent Protection: Communication with Whale Sentinel Gateway failed")
                 for i in range(3):
                     time.sleep(30)
                     wslogger.info(f"Whale Sentinel FastAPI Agent Protection: Attempt communication {i + 1} failed")
-                    gateway_response = Agent._make_call(self, endpoint, data)
+                    gateway_response = Agent._make_call(self, endpoint_1, data_1)
                     if gateway_response is not None:
                         break
             else:
                 wslogger.info("Whale Sentinel FastAPI Agent Protection: Commmunication with Whale Sentinel Gateway successful")
+                gateway_response = Agent._make_call(self, endpoint_2, data_2)
+                if gateway_response is None:
+                    wslogger.info("Whale Sentinel FastAPI Agent Protection: Synchronize with Whale Sentinel Gateway failed")
+                    for i in range(3):
+                        time.sleep(30)
+                        wslogger.info(f"Whale Sentinel FastAPI Agent Protection: Attempt Synchronize {i + 1} failed")
+                        gateway_response = Agent._make_call(self, endpoint_2, data_2)
+                        if gateway_response is not None:
+                            break
         except Exception as e:
             wslogger.error(f"Something went wrong at Agent._communication.\n Error message - {e}")
 
@@ -192,6 +213,7 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                         "lite_mode_data_synchronize_status": "inprogress",
                         "lite_mode_data_is_synchronized": False
                     },
+                    "ip_address": self.ip_address,
                     "request_created_at": datetime.now().astimezone().isoformat()
                 }
                 gateway_response = Agent._make_call(self, sync_endpoint, progress_status)
@@ -208,6 +230,7 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                             "lite_mode_data_synchronize_status": "fail",
                             "lite_mode_data_is_synchronized": False,
                         },
+                        "ip_address": self.ip_address,
                         "request_created_at": datetime.now().astimezone().isoformat()
                     }
                     Agent._make_call(self, sync_endpoint, fail_status)
@@ -219,6 +242,7 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                     "lite_mode_data_synchronize_status": "success",
                     "lite_mode_data_is_synchronized": True,
                 },
+                "ip_address": self.ip_address,
                 "request_created_at": datetime.now().astimezone().isoformat()
             }
             gateway_response = Agent._make_call(self, sync_endpoint, success_status)
@@ -254,3 +278,20 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
         except Exception as e:
             wslogger.error(f"Something went wrong at Agent._make_call.\n Error message - {e}")
     
+    def _get_internal_ip() -> None:
+        """
+        Get the internal IP address of the machine
+        """
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                # This IP doesn't need to be reachable
+                s.connect(('10.255.255.255', 1))
+                ip = s.getsockname()[0]
+            except Exception:
+                ip = '127.0.0.1'
+            finally:
+                s.close()
+            return ip
+        except Exception as e:
+            wslogger.error(f"Something went wrong at Agent.get_internal_ip.\n Error message - {e}")
