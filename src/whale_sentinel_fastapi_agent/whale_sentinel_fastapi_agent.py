@@ -98,8 +98,8 @@ class WhaleSentinelFastApiAgent(object):
                 
                 if running_mode == "protection":
                     request_meta_data = await Protection.do(self, request)
-                    blocked = await Protection._mode_protection(self, profile, request_meta_data)
-                    if blocked:
+                    is_blocked = await Protection._mode_protection(self, profile, request_meta_data)
+                    if is_blocked:
                         wslogger.info("Whale Sentinel FastAPI Agent Protection: Request blocked by Whale Sentinel Protection")
                         return JSONResponse(
                             status_code=403,

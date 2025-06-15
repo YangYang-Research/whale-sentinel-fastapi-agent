@@ -39,14 +39,14 @@ class Protection(object):
         try:
             wad_threshold = profile.get("ws_module_web_attack_detection", {}).get("threshold", {})
             dgad_threshold = profile.get("ws_module_dga_detection", {}).get("threshold", {})
-            detection = Agent._detection(self, request_meta_data)
-            if detection is None:
+            analysis_metrix, analysis_result = Agent._detection(self, request_meta_data)
+            if analysis_metrix is None or analysis_result is None:
                 Agent._write_to_storage(self, request_meta_data)
                 return False
-            wad = detection.get("ws_module_web_attack_detection_score", 0)
-            dgad = detection.get("ws_module_dga_detection_score", 0)
-            cad = detection.get("ws_module_common_attack_detection", {})
-            agent_action = detection.get("action_result", "NORMAL_CLIENT_REQUEST")
+            wad = analysis_metrix.get("ws_module_web_attack_detection_score", 0)
+            dgad = analysis_metrix.get("ws_module_dga_detection_score", 0)
+            cad = analysis_metrix.get("ws_module_common_attack_detection", {})
+            agent_action = analysis_result
             agent_self_action = "ALLOW" #Default agent action is allow
             if wad >= wad_threshold or dgad >= dgad_threshold or any(cad.values()):
                 agent_self_action = "BLOCK"
