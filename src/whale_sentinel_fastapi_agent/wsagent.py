@@ -126,24 +126,28 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
             endpoint_2 = self.ws_gateway_api + "/agent/synchronize"
             
             data_1 = {
-                "agent_id": self.agent_id,
-                "agent_name": self.agent_name,
-                "request_created_at": datetime.now().astimezone().isoformat()
+                "payload": {
+                    "data": {
+                        "agent_id": self.agent_id,
+                        "agent_name": self.agent_name,
+                    },
+                },
+                "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
             }
 
             data_2 = {
-                "agent_id": self.agent_id,
-                "agent_name": self.agent_name,
                 "payload": {
                     "data": {
+                        "agent_id": self.agent_id,
+                        "agent_name": self.agent_name,
                         "profile" : {
                             "lite_mode_data_synchronize_status": "none",
                             "lite_mode_data_is_synchronized": False
                         },
+                        "ip_address": self.ip_address,
                     }
                 },
-                "ip_address": self.ip_address,
-                "request_created_at": datetime.now().astimezone().isoformat()
+                "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
             }
 
             gateway_response = Agent._make_call(self, endpoint_1, data_1)
@@ -176,9 +180,13 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
         try:
             endpoint = self.ws_gateway_api + "/agent/profile"
             data = {
-                "agent_id": self.agent_id,
-                "agent_name": self.agent_name,
-                "request_created_at": datetime.now().astimezone().isoformat()
+                "payload": {
+                    "data": {
+                        "agent_id": self.agent_id,
+                        "agent_name": self.agent_name,
+                    }
+                },
+                "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
             }
 
             gateway_response = Agent._make_call(self, endpoint, data)
@@ -214,18 +222,18 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
             data_synchronize = Agent._read_from_storage(self)
             for item in data_synchronize:
                 progress_status = {
-                    "agent_id": self.agent_id,
-                    "agent_name": self.agent_name,
                     "payload": {
                         "data": {
+                            "agent_id": self.agent_id,
+                            "agent_name": self.agent_name,
                             "profile" : {
                                 "lite_mode_data_synchronize_status": "inprogress",
                                 "lite_mode_data_is_synchronized": False
                             },
+                            "ip_address": self.ip_address,
                         }
                     },
-                    "ip_address": self.ip_address,
-                    "request_created_at": datetime.now().astimezone().isoformat()
+                    "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
                 }
                 gateway_response = Agent._make_call(self, sync_endpoint, progress_status)
                 if gateway_response is None:
@@ -235,34 +243,34 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                 if gateway_response is None:
                     wslogger.info("Whale Sentinel FastAPI Agent Protection: Communication with Whale Sentinel Gateway failed")
                     fail_status = {
-                        "agent_id": self.agent_id,
-                        "agent_name": self.agent_name,
                         "payload": {
                             "data": {
+                                "agent_id": self.agent_id,
+                                "agent_name": self.agent_name,
                                 "profile" : {
                                     "lite_mode_data_synchronize_status": "failure",
                                     "lite_mode_data_is_synchronized": False
                                 },
+                                "ip_address": self.ip_address,
                             }
                         },
-                        "ip_address": self.ip_address,
-                        "request_created_at": datetime.now().astimezone().isoformat()
+                        "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
                     }
                     Agent._make_call(self, sync_endpoint, fail_status)
                     return None
             success_status = {
-                "agent_id": self.agent_id,
-                "agent_name": self.agent_name,
                 "payload": {
                     "data": {
+                        "agent_id": self.agent_id,
+                        "agent_name": self.agent_name,
                         "profile" : {
                             "lite_mode_data_synchronize_status": "successed",
                             "lite_mode_data_is_synchronized": False
                         },
+                        "ip_address": self.ip_address,
                     }
                 },
-                "ip_address": self.ip_address,
-                "request_created_at": datetime.now().astimezone().isoformat()
+                "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
             }
             gateway_response = Agent._make_call(self, sync_endpoint, success_status)
             if gateway_response is None:
