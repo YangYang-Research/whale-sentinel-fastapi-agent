@@ -93,10 +93,10 @@ class Protection(object):
             req_network = "unknown"  # Starlette/FastAPI doesn't expose "network" info
 
             meta_data = {
-                "agent_id": self.agent_id,
-                "agent_name": self.agent_name,
                 "payload": {
                     "data": {
+                        "agent_id": self.agent_id,
+                        "agent_name": self.agent_name,
                         "client_information": {
                             "ip": req_ip,
                             "device_type": req_device,
