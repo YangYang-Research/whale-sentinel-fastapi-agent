@@ -79,11 +79,11 @@ class Protection(object):
             req_headers = request.headers
             req_body = (await request.body()).decode("utf-8")
             req_query_string = str(request.url.query)
-            req_ip = request.client.host if request.client else "unknown"
-            req_user_agent = req_headers.get("user-agent", "")
-            req_content_type = req_headers.get("content-type", "")
+            req_ip = request.client.host if request.client else "N/A"
+            req_user_agent = req_headers.get("user-agent", "N/A")
+            req_content_type = req_headers.get("content-type", "N/A")
             req_content_length = int(req_headers.get("content-length", 0))
-            req_referrer = req_headers.get("referer", "")
+            req_referrer = req_headers.get("referer", "N/A")
             
             parsed_ua = parse(req_user_agent)
             req_device = parsed_ua.device.family
