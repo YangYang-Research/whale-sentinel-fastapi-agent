@@ -32,7 +32,7 @@ def setup_logging():
     wslogger = logging.getLogger('wslogger')
     wslogger.setLevel(logging.INFO)
     formatter = CustomFormatter(json.dumps({'level': '%(levelname)s', 'msg': '%(message)s', 'time': '%(asctime)s'}))
-    handler = RotatingFileHandler(f'/var/log/whale-sentinel/ws-agent/{AGENT_NAME}.log', maxBytes=int(LOG_MAX_SIZE), backupCount=int(LOG_MAX_BACKUPS))
+    handler = RotatingFileHandler(f'/var/log/whale-sentinel/ws-agents/{AGENT_NAME}.log', maxBytes=int(LOG_MAX_SIZE), backupCount=int(LOG_MAX_BACKUPS))
     handler.setFormatter(formatter)
     wslogger.addHandler(handler)
 
