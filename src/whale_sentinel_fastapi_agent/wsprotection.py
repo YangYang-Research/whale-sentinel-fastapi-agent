@@ -50,7 +50,7 @@ class Protection(object):
             agent_self_action = "ALLOW" #Default agent action is allow
             if wad >= wad_threshold or dgad >= dgad_threshold or any(cad.values()):
                 agent_self_action = "BLOCK"
-            if (agent_action == "ABNORMAL_CLIENT_REQUEST") and agent_self_action == "BLOCK":
+            if (agent_action == "ABNORMAL_REQUEST") and agent_self_action == "BLOCK":
                 return True
             return False
         except Exception as e:
