@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import os
-from fastapi import Request, Response
+from fastapi import Request, UploadFile, Form, Depends
 from fastapi.responses import JSONResponse
 from functools import wraps
 from typing import Callable
@@ -89,7 +89,7 @@ class WhaleSentinelFastApiAgent(object):
                     request_meta_data = await Protection.do(self, request)
                     asyncio.create_task(Protection._mode_lite(self, request_meta_data))
 
-                if running_mode != "lite" and last_run_mode == "lite" and not data_synchronized and data_synchronize_status == "fail":
+                if running_mode != "lite" and last_run_mode == "lite" and not data_synchronized and data_synchronize_status == "none":
                     asyncio.create_task(Agent._synchronize(self, profile))
 
                 if running_mode == "monitor":

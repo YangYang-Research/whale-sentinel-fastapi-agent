@@ -1,7 +1,10 @@
+from starlette.datastructures import UploadFile
+from starlette.responses import JSONResponse
 from user_agents import parse
 from datetime import datetime, timezone
 from .wslogger import wslogger
 from .wsagent import Agent
+import io
 
 class Protection(object):
     """
@@ -28,7 +31,7 @@ class Protection(object):
         try:
             detection = Agent._detection(self, request_meta_data)
             if detection is None:
-                Agent._write_to_storage(self, request_meta_data)
+                await Agent._write_to_storage(self, request_meta_data)
         except Exception as e:
             wslogger.error(f"Something went wrong at Protection._mode_monitor.\n Error message - {e}")
 
@@ -61,9 +64,11 @@ class Protection(object):
         Secure the response headers
         """
         try:
-            secure_headers = profile.get("secure_response_headers", {}).get("headers", {})
-            for key, value in secure_headers.items():
-                response.headers[key] = value
+            if isinstance(response, JSONResponse):
+                secure_headers = profile.get("secure_response_headers", {}).get("headers", {})
+                for key, value in secure_headers.items():
+                    response.headers[key] = value
+                return response
             return response
         except Exception as e:
             wslogger.error(f"Something went wrong at Protection._secure_response.\n Error message - {e}")
@@ -73,11 +78,12 @@ class Protection(object):
         Perform the Whale Sentinel FastAPI Agent Protection
         """
         try:
+            uploaded_files_info = []            
+
             req_method = request.method
             req_path = request.url.path
             req_host = request.client.host if request.client else "unknown"
-            req_headers = request.headers
-            req_body = (await request.body()).decode("utf-8")
+            req_headers = request.headers   
             req_query_string = str(request.url.query)
             req_ip = request.client.host if request.client else "N/A"
             req_user_agent = req_headers.get("user-agent", "N/A")
@@ -91,6 +97,25 @@ class Protection(object):
             req_ua_browser = parsed_ua.browser.family
             req_ua_browser_version = parsed_ua.browser.version_string
             req_network = "unknown"  # Starlette/FastAPI doesn't expose "network" info
+
+            req_body = None
+            if "multipart/form-data" in request.headers.get("content-type", ""):
+                form = await request.form()
+                for _, field in form.multi_items():
+                    if isinstance(field, UploadFile) and field.filename:
+                        file_obj = field.file
+                        current_pos = file_obj.tell()
+                        file_obj.seek(0, 2)  # Seek to end
+                        size = file_obj.tell()
+                        file_obj.seek(current_pos)  # Seek back to original position
+
+                        uploaded_files_info.append({
+                            "filename": field.filename,
+                            "size": size
+                        })
+            else:
+                body_bytes = await request.body()
+                req_body = body_bytes.decode('utf-8') if body_bytes else None
 
             meta_data = {
                 "payload": {
@@ -116,7 +141,8 @@ class Protection(object):
                                 "referrer": req_referrer
                             },
                             "body": req_body,
-                            "query_parameters": req_query_string
+                            "query_parameters": req_query_string,
+                            "files": uploaded_files_info
                         },
                     }
                 },
