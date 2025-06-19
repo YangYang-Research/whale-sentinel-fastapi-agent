@@ -1,10 +1,11 @@
+import base64
+import hashlib
 from starlette.datastructures import UploadFile
 from starlette.responses import JSONResponse
 from user_agents import parse
 from datetime import datetime, timezone
 from .wslogger import wslogger
 from .wsagent import Agent
-import io
 
 class Protection(object):
     """
@@ -78,8 +79,6 @@ class Protection(object):
         Perform the Whale Sentinel FastAPI Agent Protection
         """
         try:
-            uploaded_files_info = []            
-
             req_method = request.method
             req_path = request.url.path
             req_host = request.client.host if request.client else "unknown"
@@ -97,22 +96,27 @@ class Protection(object):
             req_ua_browser = parsed_ua.browser.family
             req_ua_browser_version = parsed_ua.browser.version_string
             req_network = "unknown"  # Starlette/FastAPI doesn't expose "network" info
-
+            
+            uploaded_files_info = []            
             req_body = None
             if "multipart/form-data" in request.headers.get("content-type", ""):
                 form = await request.form()
                 for _, field in form.multi_items():
                     if isinstance(field, UploadFile) and field.filename:
-                        file_obj = field.file
-                        current_pos = file_obj.tell()
-                        file_obj.seek(0, 2)  # Seek to end
-                        size = file_obj.tell()
-                        file_obj.seek(current_pos)  # Seek back to original position
+                        file_content = await field.read()
+                        sha256_hash = hashlib.sha256(file_content).hexdigest()
+                        encoded_content = base64.b64encode(file_content).decode("utf-8")
+                        size = len(file_content)
+                        file_info = {
+                            "file_name": field.filename,
+                            "file_size": size,
+                            "file_content": encoded_content,
+                            "file_type": field.content_type,
+                            "file_hash": sha256_hash
+                        }
+                        uploaded_files_info.append(file_info)
 
-                        uploaded_files_info.append({
-                            "filename": field.filename,
-                            "size": size
-                        })
+                        await field.seek(0)
             else:
                 body_bytes = await request.body()
                 req_body = body_bytes.decode('utf-8') if body_bytes else None
