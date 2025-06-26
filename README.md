@@ -32,10 +32,15 @@ This decorator is applied to FastAPI route handlers to enable Whale Sentinel's p
 **Example**:
 
 ```python
+from fastapi.responses import JSONResponse
+from whale_sentinel_fastapi_agent import WhaleSentinelFastApiAgent
+
+ws_agent = WhaleSentinelFastApiAgent()
+
 @app.route('/api/secure-data')
-@agent.whale_sentinel_agent_protection()
+@ws_agent.whale_sentinel_agent_protection()
 async def secure_endpoint():
-    return jsonify({"status": "protected"})
+    return JSONResponse({"status": "protected"})
 ```
 
 ## 🧾 Metadata Collected by Agent
@@ -93,10 +98,15 @@ For each uploaded file, the following metadata is collected:
 Apply the decorator to any FastAPI route you want to protect:
 
 ```python
+from fastapi.responses import JSONResponse
+from whale_sentinel_fastapi_agent import WhaleSentinelFastApiAgent
+
+ws_agent = WhaleSentinelFastApiAgent()
+
 @app.route('/login')
-@agent.whale_sentinel_agent_protection()
+@ws_agent.whale_sentinel_agent_protection()
 async def login():
-    return jsonify({"message": "This route is monitored and protected."})
+    return JSONResponse({"message": "This route is monitored and protected."})
 ```
 
 ## 📌 Notes
