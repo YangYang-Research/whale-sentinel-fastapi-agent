@@ -173,10 +173,6 @@ class Protection(object):
                             "os_name": platform.system(),
                             "os_version": platform.version(),
                             "os_build": platform.release(),
-                            "os_kernel_version": platform.version(),
-                            "os_kernel_name": platform.system(),
-                            "os_kernel_release": platform.release(),
-                            "os_kernel_arch": platform.machine(),
                         }
                     }
                 },

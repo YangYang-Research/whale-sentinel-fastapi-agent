@@ -7,6 +7,7 @@ import requests
 import time
 import json
 import socket
+import os, sys, platform, threading, multiprocessing, psutil
 
 class Agent(object):
     def __init__(self):
@@ -125,7 +126,7 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
             endpoint_1 = self.ws_gateway_api + "/agent/profile"
             endpoint_2 = self.ws_gateway_api + "/agent/synchronize"
             
-            data_1 = {
+            send_data_1 = {
                 "payload": {
                     "data": {
                         "agent_id": self.agent_id,
@@ -135,7 +136,14 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                 "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
             }
 
-            data_2 = {
+            mem = psutil.virtual_memory()
+            total = mem.total           # Tổng RAM (bytes)
+            available = mem.available   # RAM còn trống (bytes)
+            used = total - available       # RAM đã dùng (bytes)
+
+            used_percent = round((used / total) * 100, 2)  # Phần trăm RAM đã dùng
+
+            send_data_2 = {
                 "payload": {
                     "data": {
                         "agent_id": self.agent_id,
@@ -144,30 +152,47 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                             "lite_mode_data_synchronize_status": "none",
                             "lite_mode_data_is_synchronized": False
                         },
-                        "ip_address": self.ip_address,
+                        "host_information": {
+                            "ip_address": self.ip_address,
+                            "pid": os.getpid(),
+                            "run_as": psutil.Process().username(),
+                            "executable_path": psutil.Process().exe(),
+                            "executable_name": threading.current_thread().name,
+                            "executable_version": platform.python_version(),
+                            "process_name": multiprocessing.current_process().name,
+                            "process_path": os.getcwd(),
+                            "process_command": psutil.Process().cmdline(),
+                            "platform": platform.system(),
+                            "cpu_usage": psutil.cpu_percent(interval=1),
+                            "memory_usage": used_percent,
+                            "architecture": platform.machine(),
+                            "os_name": platform.system(),
+                            "os_version": platform.version(),
+                            "os_build": platform.release(),
+                        }
                     }
                 },
                 "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
             }
             
-            gateway_response = Agent._make_call(self, endpoint_1, data_1)
+            gateway_response = Agent._make_call(self, endpoint_1, send_data_1)
             if gateway_response is None:
                 wslogger.info("Whale Sentinel FastAPI Agent Protection: Communication with Whale Sentinel Gateway failed")
                 for i in range(3):
                     time.sleep(30)
                     wslogger.info(f"Whale Sentinel FastAPI Agent Protection: Attempt communication {i + 1} failed")
-                    gateway_response = Agent._make_call(self, endpoint_1, data_1)
+                    gateway_response = Agent._make_call(self, endpoint_1, send_data_1)
                     if gateway_response is not None:
                         break
             else:
                 wslogger.info("Whale Sentinel FastAPI Agent Protection: Commmunication with Whale Sentinel Gateway successful")
-                gateway_response = Agent._make_call(self, endpoint_2, data_2)
+                gateway_response = Agent._make_call(self, endpoint_2, send_data_2)
                 if gateway_response is None:
                     wslogger.info("Whale Sentinel FastAPI Agent Protection: Synchronize with Whale Sentinel Gateway failed")
                     for i in range(3):
                         time.sleep(30)
                         wslogger.info(f"Whale Sentinel FastAPI Agent Protection: Attempt Synchronize {i + 1} failed")
-                        gateway_response = Agent._make_call(self, endpoint_2, data_2)
+                        gateway_response = Agent._make_call(self, endpoint_2, send_data_2)
                         if gateway_response is not None:
                             break
         except Exception as e:
@@ -222,6 +247,14 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
             endpoint = self.ws_gateway_api
             sync_endpoint = f"{endpoint}/agent/synchronize"
             data_synchronize = Agent._read_from_storage(self)
+            
+            mem = psutil.virtual_memory()
+            total = mem.total           # Tổng RAM (bytes)
+            available = mem.available   # RAM còn trống (bytes)
+            used = total - available       # RAM đã dùng (bytes)
+
+            used_percent = round((used / total) * 100, 2)  # Phần trăm RAM đã dùng
+            
             for item in data_synchronize:
                 progress_status = {
                     "payload": {
@@ -232,7 +265,24 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                                 "lite_mode_data_synchronize_status": "inprogress",
                                 "lite_mode_data_is_synchronized": False
                             },
-                            "ip_address": self.ip_address,
+                            "host_information": {
+                                "ip_address": self.ip_address,
+                                "pid": os.getpid(),
+                                "run_as": psutil.Process().username(),
+                                "executable_path": psutil.Process().exe(),
+                                "executable_name": threading.current_thread().name,
+                                "executable_version": platform.python_version(),
+                                "process_name": multiprocessing.current_process().name,
+                                "process_path": os.getcwd(),
+                                "process_command": psutil.Process().cmdline(),
+                                "platform": platform.system(),
+                                "cpu_usage": psutil.cpu_percent(interval=1),
+                                "memory_usage": used_percent,
+                                "architecture": platform.machine(),
+                                "os_name": platform.system(),
+                                "os_version": platform.version(),
+                                "os_build": platform.release(),
+                            }
                         }
                     },
                     "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -253,7 +303,24 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                                     "lite_mode_data_synchronize_status": "failure",
                                     "lite_mode_data_is_synchronized": False
                                 },
-                                "ip_address": self.ip_address,
+                                "host_information": {
+                                    "ip_address": self.ip_address,
+                                    "pid": os.getpid(),
+                                    "run_as": psutil.Process().username(),
+                                    "executable_path": psutil.Process().exe(),
+                                    "executable_name": threading.current_thread().name,
+                                    "executable_version": platform.python_version(),
+                                    "process_name": multiprocessing.current_process().name,
+                                    "process_path": os.getcwd(),
+                                    "process_command": psutil.Process().cmdline(),
+                                    "platform": platform.system(),
+                                    "cpu_usage": psutil.cpu_percent(interval=1),
+                                    "memory_usage": used_percent,
+                                    "architecture": platform.machine(),
+                                    "os_name": platform.system(),
+                                    "os_version": platform.version(),
+                                    "os_build": platform.release(),
+                                }
                             }
                         },
                         "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -269,7 +336,24 @@ The Runtime Application Self Protection (RASP) Solution - Created by YangYang-Re
                             "lite_mode_data_synchronize_status": "successed",
                             "lite_mode_data_is_synchronized": False
                         },
-                        "ip_address": self.ip_address,
+                        "host_information": {
+                            "ip_address": self.ip_address,
+                            "pid": os.getpid(),
+                            "run_as": psutil.Process().username(),
+                            "executable_path": psutil.Process().exe(),
+                            "executable_name": threading.current_thread().name,
+                            "executable_version": platform.python_version(),
+                            "process_name": multiprocessing.current_process().name,
+                            "process_path": os.getcwd(),
+                            "process_command": psutil.Process().cmdline(),
+                            "platform": platform.system(),
+                            "cpu_usage": psutil.cpu_percent(interval=1),
+                            "memory_usage": used_percent,
+                            "architecture": platform.machine(),
+                            "os_name": platform.system(),
+                            "os_version": platform.version(),
+                            "os_build": platform.release(),
+                        }
                     }
                 },
                 "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
