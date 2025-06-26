@@ -6,6 +6,7 @@ from user_agents import parse
 from datetime import datetime, timezone
 from .wslogger import wslogger
 from .wsagent import Agent
+import os, sys, platform, threading, multiprocessing, psutil
 
 class Protection(object):
     """
@@ -85,10 +86,10 @@ class Protection(object):
             req_headers = request.headers   
             req_query_string = str(request.url.query)
             req_ip = request.client.host if request.client else "N/A"
-            req_user_agent = req_headers.get("user-agent", "N/A")
-            req_content_type = req_headers.get("content-type", "N/A")
-            req_content_length = int(req_headers.get("content-length", 0))
-            req_referrer = req_headers.get("referer", "N/A")
+            req_user_agent = req_headers.get("User-Agent", "N/A")
+            req_content_type = req_headers.get("Content-Type", "N/A")
+            req_content_length = int(req_headers.get("Content-Length", 0))
+            req_referrer = req_headers.get("Referrer", "N/A")
             
             parsed_ua = parse(req_user_agent)
             req_device = parsed_ua.device.family
@@ -97,6 +98,13 @@ class Protection(object):
             req_ua_browser_version = parsed_ua.browser.version_string
             req_network = "unknown"  # Starlette/FastAPI doesn't expose "network" info
             
+            mem = psutil.virtual_memory()
+            total = mem.total           # Tổng RAM (bytes)
+            available = mem.available   # RAM còn trống (bytes)
+            used = total - available       # RAM đã dùng (bytes)
+
+            used_percent = round((used / total) * 100, 2)  # Phần trăm RAM đã dùng
+
             uploaded_files_info = []            
             req_body = None
             if "multipart/form-data" in request.headers.get("content-type", ""):
@@ -148,6 +156,28 @@ class Protection(object):
                             "query_parameters": req_query_string,
                             "files": uploaded_files_info
                         },
+                        "runtime_information": {
+                            "ip_address": self.ip_address,
+                            "pid": os.getpid(),
+                            "run_as": psutil.Process().username(),
+                            "executable_path": psutil.Process().exe(),
+                            "executable_name": threading.current_thread().name,
+                            "executable_version": platform.python_version(),
+                            "process_name": multiprocessing.current_process().name,
+                            "process_path": os.getcwd(),
+                            "process_command": psutil.Process().cmdline(),
+                            "platform": platform.system(),
+                            "cpu_usage": psutil.cpu_percent(interval=1),
+                            "memory_usage": used_percent,
+                            "architecture": platform.machine(),
+                            "os_name": platform.system(),
+                            "os_version": platform.version(),
+                            "os_build": platform.release(),
+                            "os_kernel_version": platform.version(),
+                            "os_kernel_name": platform.system(),
+                            "os_kernel_release": platform.release(),
+                            "os_kernel_arch": platform.machine(),
+                        }
                     }
                 },
                 "request_created_at": datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
