@@ -8,8 +8,10 @@ from .wslogger import wslogger
 from .wsprotection import Protection
 from .wsagent import Agent
 import asyncio
-import datetime
+from datetime import datetime, timezone
+from cachetools import TTLCache
 
+cache = TTLCache(maxsize=1000, ttl=60)  # Max size of 1000 and TTL of 60 seconds
 
 class WhaleSentinelFastApiAgent(object):
     """
@@ -78,13 +80,41 @@ class WhaleSentinelFastApiAgent(object):
                 last_run_mode = profile.get("last_run_mode", "lite")
                 data_synchronized = profile.get("lite_mode_data_is_synchronized", False)
                 data_synchronize_status = profile.get("lite_mode_data_synchronize_status", "fail")
+                rate_limit_enable = profile.get("ws_request_rate_limit", {}).get("enable", False)
+                rate_limit_threshold = profile.get("ws_request_rate_limit", {}).get("threshold", 100)
                 secure_response_enabled = profile.get("secure_response_headers", {}).get("enable", False)
                 
+                client_ip_address = (
+                    request.client.host
+                )
                 result = await func(request, *args, **kwargs)
 
                 if running_mode == "off":
                     return result
-                           
+
+                if rate_limit_enable:
+                    client_request_temp_id = (
+                        f"{client_ip_address}_{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')}"
+                    )
+                    request_count = cache.get(client_request_temp_id)
+                    if request_count is None:
+                        cache[client_request_temp_id] = 1
+                    elif request_count >= rate_limit_threshold:
+                        request_meta_data = Protection.do(self, request)
+                        asyncio.create_task(Agent._write_to_storage(self, request_meta_data))
+
+                        wslogger.info("Whale Sentinel FastAPI Agent Protection: Request blocked by Whale Sentinel Protection")
+                        return JSONResponse(
+                            status_code=403,
+                            content={
+                                "msg": "Forbidden: Request blocked by Whale Sentinel Protection.",
+                                "time": str(datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')),
+                                "ip": client_ip_address
+                            }
+                        )
+                    else:
+                        cache[client_request_temp_id] += 1
+
                 if running_mode  == "lite":
                     request_meta_data = await Protection.do(self, request)
                     asyncio.create_task(Protection._mode_lite(self, request_meta_data))
@@ -105,8 +135,8 @@ class WhaleSentinelFastApiAgent(object):
                             status_code=403,
                             content={
                                 "msg": "Forbidden: Request blocked by Whale Sentinel Protection.",
-                                "time": str(datetime.datetime.now()),
-                                "ip": request.client.host
+                                "time": str(datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')),
+                                "ip": client_ip_address
                             }
                         )
 
