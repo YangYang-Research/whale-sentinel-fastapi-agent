@@ -16,7 +16,8 @@ The agent supports four operation modes, defined in the agent’s `profile`:
 | `protection` | Full protection mode. Detects and blocks suspicious or malicious requests.  |
 
 **Additional Feature**:
-- `secure_response_headers`: If enabled in the profile, security-related HTTP headers are added to each response.
+- `secure_response_headers`: If enabled, security headers (e.g., `X-Frame-Options`, `X-Content-Type-Options`) will be added to outgoing responses.
+- `request_rate_limit`: If enabled, limits the number of requests per IP or session within a specified time window to prevent abuse, brute-force attacks, and DoS attempts.
 
 ---
 
